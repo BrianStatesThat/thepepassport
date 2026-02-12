@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+:root {
+  /* Primary Colors */
+  --pe-blue: #1e88e5;
+  --ocean-blue: #0d7bb8;
+  
+  /* Secondary Colors */
+  --sunset-orange: #fb8c00;
+  --warm-orange: #f57c00;
+  
+  /* Accent Colors */
+  --beach-sand: #f5f5f0;
+  --soft-beige: #faf8f3;
+  
+  /* Text Colors */
+  --dark-gray: #333333;
+  --light-gray: #666666;
+  --border-gray: #e0e0e0;
+  
+  /* Background */
+  --background: #ffffff;
+  --foreground: #333333;
+}
+
+@theme {
+  --color-pe-blue: var(--pe-blue);
+  --color-ocean-blue: var(--ocean-blue);
+  --color-sunset-orange: var(--sunset-orange);
+  --color-warm-orange: var(--warm-orange);
+  --color-beach-sand: var(--beach-sand);
+  --color-dark-gray: var(--dark-gray);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0f172a;
+    --foreground: #f1f5f9;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-white dark:bg-slate-950 text-dark-gray dark:text-slate-100;
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-poppins), system-ui, -apple-system, sans-serif;
+  font-weight: 700;
+}
+
+/* Smooth scrolling for anchor links */
+a {
+  transition: color 0.3s ease;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--beach-sand);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--pe-blue);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ocean-blue);
+}
+
+/* Image optimization */
+img {
+  @apply max-w-full h-auto;
+}
