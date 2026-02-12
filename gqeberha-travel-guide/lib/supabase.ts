@@ -1,12 +1,10 @@
-import { createClient } from "@/utils/supabase/server";
-import { cookies } from "next/headers";
+import { getServerSupabase } from "@/utils/supabase/server";
 
 // Listings API
 export const listingsAPI = {
   // Get all listings, optionally filtered by category
   async getListings(category?: string, limit = 20) {
-    const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = await getServerSupabase();
     let query = supabase.from("listings").select("*");
 
     if (category) {
@@ -19,13 +17,15 @@ export const listingsAPI = {
       console.error("Error fetching listings:", error);
       return [];
     }
-    return data || [];
+    return (data || []).map((d: any) => ({
+      ...d,
+      id: typeof d.id === "string" ? parseInt(d.id, 10) || 0 : d.id,
+    }));
   },
 
   // Get featured listings
   async getFeaturedListings(limit = 6) {
-    const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = await getServerSupabase();
     const { data, error } = await supabase
       .from("listings")
       .select("*")
@@ -37,26 +37,31 @@ export const listingsAPI = {
       console.error("Error fetching featured listings:", error);
       return [];
     }
-    return data || [];
+    return (data || []).map((d: any) => ({
+      ...d,
+      id: typeof d.id === "string" ? parseInt(d.id, 10) || 0 : d.id,
+    }));
   },
 
   // Get single listing by slug
   async getListingBySlug(slug: string) {
-    const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = await getServerSupabase();
     const { data, error } = await supabase.from("listings").select("*").eq("slug", slug).single();
 
     if (error) {
       console.error("Error fetching listing:", error);
       return null;
     }
-    return data;
+    if (!data) return null;
+    return {
+      ...data,
+      id: typeof data.id === "string" ? parseInt(data.id, 10) || 0 : data.id,
+    };
   },
 
   // Search listings
   async searchListings(searchQuery: string, limit = 20) {
-    const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = await getServerSupabase();
     const { data, error } = await supabase
       .from("listings")
       .select("*")
@@ -68,13 +73,15 @@ export const listingsAPI = {
       console.error("Error searching listings:", error);
       return [];
     }
-    return data || [];
+    return (data || []).map((d: any) => ({
+      ...d,
+      id: typeof d.id === "string" ? parseInt(d.id, 10) || 0 : d.id,
+    }));
   },
 
   // Get listings by category with count
   async getListingsByCategory(categoryName: string, limit = 20) {
-    const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = await getServerSupabase();
     const { data, error } = await supabase
       .from("listings")
       .select("*")
@@ -86,7 +93,10 @@ export const listingsAPI = {
       console.error("Error fetching listings by category:", error);
       return [];
     }
-    return data || [];
+    return (data || []).map((d: any) => ({
+      ...d,
+      id: typeof d.id === "string" ? parseInt(d.id, 10) || 0 : d.id,
+    }));
   },
 };
 
@@ -94,8 +104,7 @@ export const listingsAPI = {
 export const blogAPI = {
   // Get all published blog posts
   async getPosts(limit = 10) {
-    const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = await getServerSupabase();
     const { data = [], error } = await supabase
       .from("blog_posts")
       .select("*")
@@ -114,7 +123,7 @@ export const blogAPI = {
       const reading_time = p.read_time ?? p.reading_time ?? p.readTime ?? null;
 
       return {
-        id: p.id,
+        id: typeof p.id === "string" ? parseInt(p.id, 10) || 0 : p.id,
         slug: p.slug,
         title: p.title ?? p.name ?? "Untitled",
         excerpt: p.excerpt ?? p.summary ?? "",
@@ -134,8 +143,7 @@ export const blogAPI = {
 
   // Get single post by slug
   async getPostBySlug(slug: string) {
-    const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = await getServerSupabase();
     const { data, error } = await supabase
       .from("blog_posts")
       .select("*")
@@ -146,13 +154,16 @@ export const blogAPI = {
       console.error("Error fetching blog post:", error);
       return null;
     }
-    return data;
+    if (!data) return null;
+    return {
+      ...data,
+      id: typeof data.id === "string" ? parseInt(data.id, 10) || 0 : data.id,
+    };
   },
 
   // Get related posts
-  async getRelatedPosts(currentPostId: string, limit = 3) {
-    const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+  async getRelatedPosts(currentPostId: number, limit = 3) {
+    const supabase = await getServerSupabase();
     const { data, error } = await supabase
       .from("blog_posts")
       .select("*")
@@ -164,7 +175,10 @@ export const blogAPI = {
       console.error("Error fetching related posts:", error);
       return [];
     }
-    return data || [];
+    return (data || []).map((d: any) => ({
+      ...d,
+      id: typeof d.id === "string" ? parseInt(d.id, 10) || 0 : d.id,
+    }));
   },
 };
 
@@ -176,10 +190,9 @@ export const contactAPI = {
     email: string;
     phone?: string;
     message: string;
-    listing_id?: string;
+    listing_id?: number;
   }) {
-    const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = await getServerSupabase();
     const { data, error } = await supabase.from("enquiries").insert([enquiry]).select();
 
     if (error) {
@@ -194,21 +207,22 @@ export const contactAPI = {
 export const categoriesAPI = {
   // Get all categories
   async getCategories() {
-    const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = await getServerSupabase();
     const { data, error } = await supabase.from("categories").select("*").order("name");
 
     if (error) {
       console.error("Error fetching categories:", error);
       return [];
     }
-    return data || [];
+    return (data || []).map((c: any) => ({
+      ...c,
+      id: typeof c.id === "string" ? parseInt(c.id, 10) || 0 : c.id,
+    }));
   },
 
   // Get categories with listing count
   async getCategoriesWithCounts() {
-    const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = await getServerSupabase();
     const { data: categories, error } = await supabase
       .from("categories")
       .select("*")
@@ -222,8 +236,7 @@ export const categoriesAPI = {
     // Get count for each category
     const categoriesWithCounts = await Promise.all(
       (categories || []).map(async (cat) => {
-        const cookieStore2 = cookies();
-        const supabase2 = await createClient(cookieStore2);
+        const supabase2 = await getServerSupabase();
         const { count, error: countError } = await supabase2
           .from("listings")
           .select("*", { count: "exact", head: true })
@@ -231,6 +244,7 @@ export const categoriesAPI = {
 
         return {
           ...cat,
+          id: typeof cat.id === "string" ? parseInt(cat.id, 10) || 0 : cat.id,
           count: countError ? 0 : count || 0,
         };
       })

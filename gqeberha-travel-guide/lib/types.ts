@@ -1,6 +1,6 @@
 // Listing type
 export interface Listing {
-  id: string;
+  id: number;
   slug: string;
   title: string;
   description: string;
@@ -33,7 +33,7 @@ export interface Listing {
 
 // Blog Post type
 export interface BlogPost {
-  id: string;
+  id: number;
   slug: string;
   title: string;
   excerpt: string;
@@ -47,14 +47,14 @@ export interface BlogPost {
   related_listings?: string[];
   created_at: string;
   updated_at: string;
-  // compatibility aliases used by UI/mappers
-  date?: string;
-  readTime?: string;
+  // compatibility aliases used by UI/mappers - always provided by API
+  date: string;
+  readTime: string;
 }
 
 // Category type
 export interface Category {
-  id: string;
+  id: number;
   name: string;
   slug: string;
   description?: string;
@@ -65,19 +65,19 @@ export interface Category {
 
 // Enquiry type
 export interface Enquiry {
-  id: string;
+  id: number;
   name: string;
   email: string;
   phone?: string;
   message: string;
-  listing_id?: string;
+  listing_id?: number;
   status: "new" | "read" | "responded";
   created_at: string;
 }
 
 // Listing Suggestion type
 export interface ListingSuggestion {
-  id: string;
+  id: number;
   name: string;
   email: string;
   place_name: string;

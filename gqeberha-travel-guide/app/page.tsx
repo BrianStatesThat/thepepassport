@@ -7,6 +7,8 @@ import { Footer } from "@/app/components/Footer";
 import { listingsAPI, blogAPI } from "@/lib/supabase";
 import type { Listing, BlogPost, FeaturedListing } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   // Fetch data from Supabase
   let listings: FeaturedListing[] = [];

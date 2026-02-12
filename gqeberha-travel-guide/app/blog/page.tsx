@@ -4,6 +4,8 @@ import { Footer } from "@/app/components/Footer";
 import { blogAPI } from "@/lib/supabase";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 export default async function BlogPage() {
   // Raw rows returned by Supabase may have snake_case fields (published_at, read_time)
   // Map them to the shape expected by BlogSection (id:number, title, excerpt, date, readTime, featured_image)

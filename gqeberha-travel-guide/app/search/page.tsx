@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { Header } from "@/app/components/Header";
 import { DiscoverSection } from "@/app/components/DiscoverSection";
 import { Footer } from "@/app/components/Footer";
-import { listingsAPI } from "@/lib/supabase";
+import { searchListingsAction } from "@/app/actions/search";
 import { useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
 
-export default function SearchPage() {
+function SearchPageContent() {
   const searchParams = useSearchParams();
   const query = searchParams.get("q") || "";
 
@@ -28,8 +28,13 @@ export default function SearchPage() {
       try {
         setLoading(true);
         setError(null);
-        const results = await listingsAPI.searchListings(query);
-        setListings(results || []);
+        const result = await searchListingsAction(query);
+        if (result.error) {
+          setError(result.error);
+          setListings([]);
+        } else {
+          setListings(result.data || []);
+        }
       } catch (err: any) {
         setError(err.message || "Search failed. Please try again.");
         setListings([]);
@@ -116,5 +121,13 @@ export default function SearchPage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SearchPageContent />
+    </Suspense>
   );
 }
