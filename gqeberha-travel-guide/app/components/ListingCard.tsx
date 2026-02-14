@@ -7,6 +7,8 @@ interface ListingCardProps {
 }
 
 export function ListingCard({ listing, onClick }: ListingCardProps) {
+  const isFeatured = listing.featured || listing.is_featured;
+  const displayTitle = listing.title || (listing as { name?: string }).name || "Untitled";
   const priceIndicator = listing.price_range ? {
     "$": "Budget",
     "$$": "Moderate",
@@ -28,7 +30,7 @@ export function ListingCard({ listing, onClick }: ListingCardProps) {
             backgroundColor: "#cbd5e1",
           }}
         />
-        {listing.featured && (
+        {isFeatured && (
           <div className="absolute top-3 right-3 bg-sunset-orange text-white px-3 py-1 rounded-full text-xs font-semibold">
             Featured
           </div>
@@ -41,7 +43,7 @@ export function ListingCard({ listing, onClick }: ListingCardProps) {
       {/* Content */}
       <div className="p-4">
         <h3 className="text-lg font-bold text-dark-gray dark:text-white mb-2 line-clamp-2">
-          {listing.title}
+          {displayTitle}
         </h3>
         <p className="text-sm text-gray-600 dark:text-slate-400 mb-4 line-clamp-2">
           {listing.description}

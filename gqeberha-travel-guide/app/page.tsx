@@ -5,13 +5,13 @@ import { CategoryNavigation } from "@/app/components/CategoryNavigation";
 import { BlogSection } from "@/app/components/BlogSection";
 import { Footer } from "@/app/components/Footer";
 import { listingsAPI, blogAPI } from "@/lib/supabase";
-import type { Listing, BlogPost, FeaturedListing } from "@/lib/types";
+import type { Listing, BlogPost } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   // Fetch data from Supabase
-  let listings: FeaturedListing[] = [];
+  let listings: Listing[] = [];
   let blogPosts: BlogPost[] = [];
   let error: unknown = null;
 
@@ -20,12 +20,7 @@ export default async function HomePage() {
       listingsAPI.getFeaturedListings(6),
       blogAPI.getPosts(3),
     ]);
-    listings = ((listingsData as any[]) || []).map((l: any) => ({
-      ...l,
-      // ensure id is a number
-      id: typeof l.id === "string" ? parseInt(l.id, 10) || 0 : (l.id ?? 0),
-      category: l.category ?? (Array.isArray(l.categories) ? l.categories[0] ?? "general" : "general"),
-    })) as FeaturedListing[];
+    listings = (listingsData as Listing[]) || [];
 
     blogPosts = (((postsData as any[]) || []).map((p: any) => ({
       ...p,
@@ -47,7 +42,10 @@ export default async function HomePage() {
 
       {/* MAIN CONTENT */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <DiscoverSection listings={listings} />
+        <DiscoverSection
+          listings={listings}
+          emptyMessage="No featured listings found in Supabase yet. Mark listings as featured to show them here."
+        />
         <CategoryNavigation />
         <BlogSection posts={blogPosts} />
       </main>

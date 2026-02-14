@@ -2,21 +2,24 @@ import { Header } from "@/app/components/Header";
 import { DiscoverSection } from "@/app/components/DiscoverSection";
 import { Footer } from "@/app/components/Footer";
 import { listingsAPI } from "@/lib/supabase";
+import type { Listing } from "@/lib/types";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 
 interface CategoryPageProps {
   params: {
     category: string;
-  };
+  } | Promise<{
+    category: string;
+  }>;
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
-  const { category } = params;
+  const { category } = await Promise.resolve(params);
   const decodedCategory = decodeURIComponent(category);
 
-  let listings = [];
-  let error = null;
+  let listings: Listing[] = [];
+  let error: string | null = null;
 
   try {
     listings = (await listingsAPI.getListings(decodedCategory)) || [];

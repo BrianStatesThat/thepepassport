@@ -2,7 +2,6 @@ import { Header } from "@/app/components/Header";
 import { BlogSection } from "@/app/components/BlogSection";
 import { Footer } from "@/app/components/Footer";
 import { blogAPI } from "@/lib/supabase";
-import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -73,13 +72,6 @@ export default async function BlogPage() {
             posts={posts}
             title="All Posts"
             subtitle="Browse our complete collection of travel guides and local insights"
-            onPostClick={(postId) => {
-              // Navigation handled by the card click handler
-              const post = posts.find((p) => p.id === postId);
-              if (post?.slug) {
-                window.location.href = `/blog/${post.slug}`;
-              }
-            }}
           />
         ) : (
           <div className="text-center py-12">

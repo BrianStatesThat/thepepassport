@@ -114,9 +114,19 @@ export function Footer({
 
         {/* Copyright */}
         <div className="border-t border-gray-300 dark:border-slate-700 pt-8 text-center text-xs md:text-sm text-gray-600 dark:text-slate-400">
-          <p>© {copyrightYear} {companyName}. All rights reserved.</p>
+          <div className="mb-3 flex items-center justify-center gap-4">
+            <Link href="/privacy" className="hover:text-blue-600 dark:hover:text-blue-400 transition">
+              Privacy Policy
+            </Link>
+            <span aria-hidden="true">|</span>
+            <Link href="/terms" className="hover:text-blue-600 dark:hover:text-blue-400 transition">
+              Terms &amp; Conditions
+            </Link>
+          </div>
+          <p>(c) {copyrightYear} {companyName}. All rights reserved.</p>
         </div>
       </div>
     </footer>
   );
 }
+

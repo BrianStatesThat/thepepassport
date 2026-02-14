@@ -7,6 +7,7 @@ import { useState, useEffect, type FormEvent } from "react";
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchActive, setSearchActive] = useState(false);
+  const [menuActive, setMenuActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
@@ -22,8 +23,8 @@ export function Header() {
   const handleSearchSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      // Handle search
-      console.log("Search:", searchQuery);
+      // Navigate to search page
+      window.location.href = `/search?q=${encodeURIComponent(searchQuery)}`;
       setSearchQuery("");
       setSearchActive(false);
     }
@@ -43,17 +44,14 @@ export function Header() {
 
           {/* Desktop Navigation + Search */}
           <nav className="hidden md:flex gap-8 items-center flex-1 justify-end">
+            <Link href="/listings" className="text-dark-gray dark:text-slate-200 hover:text-blue-600 font-medium transition">
+              All Listings
+            </Link>
+            <Link href="/blog" className="text-dark-gray dark:text-slate-200 hover:text-blue-600 font-medium transition">
+              Blog
+            </Link>
             <Link href="#explore" className="text-dark-gray dark:text-slate-200 hover:text-blue-600 font-medium transition">
               Explore
-            </Link>
-            <Link href="#eat" className="text-dark-gray dark:text-slate-200 hover:text-blue-600 font-medium transition">
-              Eat
-            </Link>
-            <Link href="#stay" className="text-dark-gray dark:text-slate-200 hover:text-blue-600 font-medium transition">
-              Stay
-            </Link>
-            <Link href="#adventures" className="text-dark-gray dark:text-slate-200 hover:text-blue-600 font-medium transition">
-              Adventures
             </Link>
 
             {/* Desktop Search Bar - Shows when scrolled past hero */}
@@ -116,11 +114,45 @@ export function Header() {
             )}
 
             {/* Mobile Menu Button */}
-            <button className={`text-dark-gray dark:text-white hover:opacity-80 transition p-2 ${searchActive ? "invisible pointer-events-none" : ""}`}>
+            <button 
+              onClick={() => setMenuActive((m) => !m)}
+              className={`text-dark-gray dark:text-white hover:opacity-80 transition p-2 z-10 ${searchActive ? "invisible pointer-events-none" : ""}`}
+              aria-expanded={menuActive}
+              aria-label="Toggle menu"
+            >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
+
+            {/* Mobile Menu Drawer */}
+            {menuActive && (
+              <div className="absolute left-0 right-0 top-full mt-0 z-40 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 shadow-lg">
+                <nav className="flex flex-col p-4 gap-4">
+                  <Link
+                    href="/listings"
+                    onClick={() => setMenuActive(false)}
+                    className="text-dark-gray dark:text-slate-200 hover:text-blue-600 font-medium transition py-2"
+                  >
+                    All Listings
+                  </Link>
+                  <Link
+                    href="/blog"
+                    onClick={() => setMenuActive(false)}
+                    className="text-dark-gray dark:text-slate-200 hover:text-blue-600 font-medium transition py-2"
+                  >
+                    Blog
+                  </Link>
+                  <Link 
+                    href="#explore" 
+                    onClick={() => setMenuActive(false)}
+                    className="text-dark-gray dark:text-slate-200 hover:text-blue-600 font-medium transition py-2"
+                  >
+                    Explore
+                  </Link>
+                </nav>
+              </div>
+            )}
           </div>
         </div>
       </div>

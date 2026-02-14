@@ -17,7 +17,7 @@ export function useListings(options?: UseListingsOptions) {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const result = await listingsAPI.getListings(options?.category);
+        const result = await listingsAPI.getListings(options?.category, options?.limit);
         setData(result || []);
         setError(null);
       } catch (err: any) {
@@ -29,7 +29,7 @@ export function useListings(options?: UseListingsOptions) {
     };
 
     fetchData();
-  }, [options?.category]);
+  }, [options?.category, options?.limit]);
 
   return { data, loading, error };
 }

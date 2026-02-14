@@ -1,6 +1,6 @@
 // Listing type
 export interface Listing {
-  id: number;
+  id: string;
   slug: string;
   title: string;
   description: string;
@@ -24,6 +24,10 @@ export interface Listing {
   features?: string[];
   verified: boolean;
   featured: boolean;
+  // Optional legacy aliases retained for backward compatibility with older UI code
+  is_featured?: boolean;
+  is_verified?: boolean;
+  is_deleted?: boolean;
   status: "published" | "draft" | "archived";
   rating?: number;
   review_count?: number;
@@ -33,7 +37,7 @@ export interface Listing {
 
 // Blog Post type
 export interface BlogPost {
-  id: number;
+  id: string;
   slug: string;
   title: string;
   excerpt: string;
@@ -54,7 +58,7 @@ export interface BlogPost {
 
 // Category type
 export interface Category {
-  id: number;
+  id: string;
   name: string;
   slug: string;
   description?: string;
@@ -65,19 +69,19 @@ export interface Category {
 
 // Enquiry type
 export interface Enquiry {
-  id: number;
+  id: string;
   name: string;
   email: string;
   phone?: string;
   message: string;
-  listing_id?: number;
+  listing_id?: string;
   status: "new" | "read" | "responded";
   created_at: string;
 }
 
 // Listing Suggestion type
 export interface ListingSuggestion {
-  id: number;
+  id: string;
   name: string;
   email: string;
   place_name: string;

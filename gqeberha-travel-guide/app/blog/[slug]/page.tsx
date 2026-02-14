@@ -9,11 +9,13 @@ import { notFound } from "next/navigation";
 interface BlogPostPageProps {
   params: {
     slug: string;
-  };
+  } | Promise<{
+    slug: string;
+  }>;
 }
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
-  const { slug } = params;
+  const { slug } = await Promise.resolve(params);
 
   let post = null;
   let relatedPosts = [];
@@ -114,12 +116,6 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             posts={relatedPosts}
             title="More Travel Tips"
             subtitle="Check out these related articles"
-            onPostClick={(postId) => {
-              const post = relatedPosts.find((p: typeof relatedPosts[0]) => p.id === postId);
-              if (post?.slug) {
-                window.location.href = `/blog/${post.slug}`;
-              }
-            }}
           />
         </section>
       )}

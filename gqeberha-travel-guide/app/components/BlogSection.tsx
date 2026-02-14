@@ -1,13 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import { Calendar, Clock } from "lucide-react";
 
 interface BlogPost {
-  id: number;
+  id: string | number;
+  slug?: string;
   title: string;
   excerpt: string;
-  date: string;
-  readTime: string;
+  date?: string;
+  readTime?: string;
+  published_at?: string;
+  reading_time?: number;
   featured_image?: string;
 }
 
@@ -15,14 +19,12 @@ interface BlogSectionProps {
   title?: string;
   subtitle?: string;
   posts?: BlogPost[];
-  onPostClick?: (postId: number) => void;
 }
 
 export function BlogSection({
   title = "Latest Travel Tips",
   subtitle = "Insider guides, itineraries, and local insights to enhance your Gqeberha experience.",
   posts = [],
-  onPostClick,
 }: BlogSectionProps) {
   const defaultPosts: BlogPost[] = [
     {
@@ -58,41 +60,54 @@ export function BlogSection({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {displayPosts.map((post) => (
-          <article
-            key={post.id}
-            onClick={() => onPostClick?.(post.id)}
-            className="bg-white dark:bg-slate-900 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition cursor-pointer border border-gray-200 dark:border-slate-800 flex flex-col h-full hover:scale-105 duration-300"
-          >
-            {/* Image */}
-            <div
-              className="h-40 bg-linear-to-br from-orange-300 to-orange-400 bg-cover bg-center"
-              style={{
-                backgroundImage: post.featured_image ? `url(${post.featured_image})` : undefined,
-              }}
-            />
+        {displayPosts.map((post) => {
+          const displayDate = post.date
+            ?? (post.published_at ? new Date(post.published_at).toLocaleDateString() : "");
+          const displayReadTime = post.readTime
+            ?? (typeof post.reading_time === "number" ? `${post.reading_time} min read` : "");
+          const cardClasses = "bg-white dark:bg-slate-900 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition cursor-pointer border border-gray-200 dark:border-slate-800 flex flex-col h-full hover:scale-105 duration-300";
+          const cardBody = (
+            <>
+              {/* Image */}
+              <div
+                className="h-40 bg-linear-to-br from-orange-300 to-orange-400 bg-cover bg-center"
+                style={{
+                  backgroundImage: post.featured_image ? `url(${post.featured_image})` : undefined,
+                }}
+              />
 
-            {/* Content */}
-            <div className="p-6 flex flex-col flex-1">
-              <h3 className="text-lg font-bold text-dark-gray dark:text-white mb-3 line-clamp-2 flex-1">
-                {post.title}
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-slate-400 mb-4 line-clamp-2">{post.excerpt}</p>
+              {/* Content */}
+              <div className="p-6 flex flex-col flex-1">
+                <h3 className="text-lg font-bold text-dark-gray dark:text-white mb-3 line-clamp-2 flex-1">
+                  {post.title}
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-slate-400 mb-4 line-clamp-2">{post.excerpt}</p>
 
-              {/* Metadata */}
-              <div className="flex items-center justify-between text-xs text-gray-500 dark:text-slate-400 border-t border-gray-100 dark:border-slate-800 pt-4">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  <span>{post.date}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  <span>{post.readTime}</span>
+                {/* Metadata */}
+                <div className="flex items-center justify-between text-xs text-gray-500 dark:text-slate-400 border-t border-gray-100 dark:border-slate-800 pt-4">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    <span>{displayDate}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    <span>{displayReadTime}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </article>
-        ))}
+            </>
+          );
+
+          return post.slug ? (
+            <Link key={post.id} href={`/blog/${post.slug}`} className={cardClasses}>
+              {cardBody}
+            </Link>
+          ) : (
+            <article key={post.id} className={cardClasses}>
+              {cardBody}
+            </article>
+          );
+        })}
       </div>
     </section>
   );
