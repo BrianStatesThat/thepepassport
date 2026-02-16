@@ -117,7 +117,7 @@ export function Header() {
 
             {/* Mobile Menu Drawer */}
             {menuActive && (
-              <div className="absolute left-0 right-0 top-full mt-0 z-40 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 shadow-lg">
+              <div className="absolute right-0 top-full mt-2 z-40 w-[90vw] max-w-[420px] overflow-hidden rounded-2xl border border-gray-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 shadow-xl backdrop-blur-sm">
                 <nav className="flex flex-col p-4 gap-4">
                   <Link
                     href="/listings"
