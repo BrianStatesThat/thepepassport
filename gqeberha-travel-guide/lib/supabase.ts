@@ -39,6 +39,7 @@ const LISTING_SELECT = `
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const LISTINGS_BUCKET = process.env.NEXT_PUBLIC_SUPABASE_LISTINGS_BUCKET ?? "listings";
+type ServerSupabaseClient = Awaited<ReturnType<typeof getServerSupabase>>;
 
 type ListingImageRow = {
   storage_path?: string | null;
@@ -72,6 +73,12 @@ type ListingRow = Partial<Listing> & {
   listing_images?: ListingImageRow[] | null;
 };
 
+type CategoryRow = {
+  id?: string | null;
+  name?: string | null;
+  slug?: string | null;
+};
+
 function toText(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
@@ -94,6 +101,98 @@ function buildPublicStorageUrl(storagePath: string | null): string | null {
     .map((segment) => encodeURIComponent(segment))
     .join("/");
   return `${SUPABASE_URL}/storage/v1/object/public/${LISTINGS_BUCKET}/${encodedPath}`;
+}
+
+function toNonEmptyStringArray(values: unknown): string[] {
+  if (!Array.isArray(values)) return [];
+  return values.map((value) => toText(value)).filter((value): value is string => !!value);
+}
+
+async function resolveCategoryIdByNameOrSlug(
+  supabase: ServerSupabaseClient,
+  category: string
+): Promise<string | null> {
+  const normalizedCategory = toText(category);
+  if (!normalizedCategory) return null;
+
+  const { data: byName } = await supabase
+    .from("categories")
+    .select("id")
+    .eq("name", normalizedCategory)
+    .maybeSingle();
+
+  const byNameId = toText((byName as { id?: string | null } | null)?.id);
+  if (byNameId) return byNameId;
+
+  const slug = normalizedCategory.toLowerCase().replace(/\s+/g, "-");
+  const { data: bySlug } = await supabase
+    .from("categories")
+    .select("id")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  return toText((bySlug as { id?: string | null } | null)?.id);
+}
+
+async function hydrateCategoryNames(
+  supabase: ServerSupabaseClient,
+  rows: unknown[] | null | undefined
+): Promise<ListingRow[]> {
+  const listingRows = (rows || []).map((row) => (row && typeof row === "object" ? row : {}) as ListingRow);
+  if (listingRows.length === 0) return listingRows;
+
+  const categoryIdsToLookup = Array.from(
+    new Set(
+      listingRows.flatMap((row) => {
+        const existing = toNonEmptyStringArray(row.categories);
+        if (existing.length > 0) return [];
+        return toNonEmptyStringArray(row.category_ids);
+      })
+    )
+  );
+
+  if (categoryIdsToLookup.length === 0) return listingRows;
+
+  const { data, error } = await supabase
+    .from("categories")
+    .select("id,name,slug")
+    .in("id", categoryIdsToLookup);
+
+  if (error) {
+    console.error("Error resolving category names:", formatSupabaseError(error));
+    return listingRows;
+  }
+
+  const categories = ((data || []) as CategoryRow[]).map((cat) => ({
+    id: toText(cat.id),
+    name: toText(cat.name) ?? toText(cat.slug),
+  }));
+  const nameById = new Map(
+    categories
+      .filter((cat): cat is { id: string; name: string } => !!cat.id && !!cat.name)
+      .map((cat) => [cat.id, cat.name])
+  );
+
+  return listingRows.map((row) => {
+    const existing = toNonEmptyStringArray(row.categories);
+    if (existing.length > 0) return { ...row, categories: existing };
+
+    const resolvedNames = toNonEmptyStringArray(row.category_ids)
+      .map((id) => nameById.get(id))
+      .filter((name): name is string => !!name);
+
+    return resolvedNames.length > 0
+      ? { ...row, categories: Array.from(new Set(resolvedNames)) }
+      : row;
+  });
+}
+
+async function mapListingRows(
+  supabase: ServerSupabaseClient,
+  rows: unknown[] | null | undefined
+): Promise<Listing[]> {
+  const hydratedRows = await hydrateCategoryNames(supabase, rows);
+  return hydratedRows.map(normalizeListingRow);
 }
 
 function normalizeListingRow(row: unknown): Listing {
@@ -128,7 +227,7 @@ function normalizeListingRow(row: unknown): Listing {
   const existingContact = source.contact && typeof source.contact === "object"
     ? source.contact
     : null;
-  const categories = Array.isArray(source.categories) ? source.categories : [];
+  const categories = toNonEmptyStringArray(source.categories);
 
   return {
     ...(source as Listing),
@@ -165,19 +264,36 @@ export const listingsAPI = {
   // Get all listings, optionally filtered by category
   async getListings(category?: string, limit = 20): Promise<Listing[]> {
     const supabase = await getServerSupabase();
-    let query = supabase.from("listings").select(LISTING_SELECT);
+    const baseQuery = () =>
+      supabase
+        .from("listings")
+        .select(LISTING_SELECT)
+        .limit(limit)
+        .order("created_at", { ascending: false });
 
-    if (category) {
-      query = query.contains("categories", [category]);
-    }
+    let query = baseQuery();
+    if (category) query = query.contains("categories", [category]);
 
-    const { data, error } = await query.limit(limit).order("created_at", { ascending: false });
+    const { data, error } = await query;
 
-    if (error) {
-      console.error("Error fetching listings:", error);
+    const hasPrimaryResults = !error && (data || []).length > 0;
+    if (!category || hasPrimaryResults) return mapListingRows(supabase, data);
+
+    const fallbackCategoryId = await resolveCategoryIdByNameOrSlug(supabase, category);
+    if (!fallbackCategoryId) {
+      if (error) console.error("Error fetching listings:", error);
       return [];
     }
-    return (data || []).map(normalizeListingRow);
+
+    const { data: fallbackData, error: fallbackError } = await baseQuery().contains("category_ids", [fallbackCategoryId]);
+    if (fallbackError) {
+      console.error("Error fetching listings:", {
+        categoriesError: formatSupabaseError(error),
+        categoryIdsError: formatSupabaseError(fallbackError),
+      });
+      return [];
+    }
+    return mapListingRows(supabase, fallbackData);
   },
 
   // Get paginated listings with total count (no featured filter)
@@ -194,17 +310,27 @@ export const listingsAPI = {
     const to = from + safePageSize - 1;
 
     const supabase = await getServerSupabase();
-    let query = supabase
-      .from("listings")
-      .select(LISTING_SELECT, { count: "exact" });
+    const baseQuery = () =>
+      supabase
+        .from("listings")
+        .select(LISTING_SELECT, { count: "exact" })
+        .order("created_at", { ascending: false })
+        .range(from, to);
 
-    if (category) {
-      query = query.contains("categories", [category]);
+    let { data, count, error } = category
+      ? await baseQuery().contains("categories", [category])
+      : await baseQuery();
+
+    const needsFallback = Boolean(category && (!error && (data || []).length === 0));
+    if ((error || needsFallback) && category) {
+      const fallbackCategoryId = await resolveCategoryIdByNameOrSlug(supabase, category);
+      if (fallbackCategoryId) {
+        const fallback = await baseQuery().contains("category_ids", [fallbackCategoryId]);
+        data = fallback.data;
+        count = fallback.count;
+        error = fallback.error;
+      }
     }
-
-    const { data, count, error } = await query
-      .order("created_at", { ascending: false })
-      .range(from, to);
 
     if (error) {
       console.error("Error fetching paginated listings:", formatSupabaseError(error));
@@ -221,7 +347,7 @@ export const listingsAPI = {
     const totalPages = Math.max(1, Math.ceil(total / safePageSize));
 
     return {
-      data: (data || []).map(normalizeListingRow),
+      data: await mapListingRows(supabase, data),
       total,
       totalPages,
       page: safePage,
@@ -239,7 +365,7 @@ export const listingsAPI = {
       .limit(limit)
       .order("created_at", { ascending: false });
 
-    if (!error) return (data || []).map(normalizeListingRow);
+    if (!error) return mapListingRows(supabase, data);
 
     // Backward-compatible fallback for schemas that still use `is_featured`.
     const { data: legacyData, error: legacyError } = await supabase
@@ -249,7 +375,7 @@ export const listingsAPI = {
       .limit(limit)
       .order("created_at", { ascending: false });
 
-    if (!legacyError) return (legacyData || []).map(normalizeListingRow);
+    if (!legacyError) return mapListingRows(supabase, legacyData);
 
     console.error("Error fetching featured listings:", {
       featuredError: formatSupabaseError(error),
@@ -267,7 +393,9 @@ export const listingsAPI = {
       console.error("Error fetching listing:", error);
       return null;
     }
-    return data ? normalizeListingRow(data) : null;
+    if (!data) return null;
+    const hydrated = await mapListingRows(supabase, [data]);
+    return hydrated[0] ?? null;
   },
 
   // Search listings
@@ -283,7 +411,7 @@ export const listingsAPI = {
 
     const { data, error } = await runSearch("title");
 
-    if (!error) return (data || []).map(normalizeListingRow);
+    if (!error) return mapListingRows(supabase, data);
 
     const { data: fallbackData, error: fallbackError } = await runSearch("name");
     if (fallbackError) {
@@ -294,24 +422,42 @@ export const listingsAPI = {
       return [];
     }
 
-    return (fallbackData || []).map(normalizeListingRow);
+    return mapListingRows(supabase, fallbackData);
   },
 
   // Get listings by category with count
   async getListingsByCategory(categoryName: string, limit = 20): Promise<Listing[]> {
     const supabase = await getServerSupabase();
-    const { data, error } = await supabase
-      .from("listings")
-      .select(LISTING_SELECT)
-      .contains("categories", [categoryName])
-      .limit(limit)
-      .order("created_at", { ascending: false });
+    const baseQuery = () =>
+      supabase
+        .from("listings")
+        .select(LISTING_SELECT)
+        .limit(limit)
+        .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("Error fetching listings by category:", error);
+    const { data, error } = await baseQuery()
+      .contains("categories", [categoryName]);
+
+    const hasPrimaryResults = !error && (data || []).length > 0;
+    if (hasPrimaryResults) return mapListingRows(supabase, data);
+
+    const fallbackCategoryId = await resolveCategoryIdByNameOrSlug(supabase, categoryName);
+    if (!fallbackCategoryId) {
+      if (error) console.error("Error fetching listings by category:", error);
       return [];
     }
-    return (data || []).map(normalizeListingRow);
+
+    const { data: fallbackData, error: fallbackError } = await baseQuery()
+      .contains("category_ids", [fallbackCategoryId]);
+
+    if (fallbackError) {
+      console.error("Error fetching listings by category:", {
+        categoriesError: formatSupabaseError(error),
+        categoryIdsError: formatSupabaseError(fallbackError),
+      });
+      return [];
+    }
+    return mapListingRows(supabase, fallbackData);
   },
 };
 
@@ -469,9 +615,22 @@ export const categoriesAPI = {
           .select("*", { count: "exact", head: true })
           .contains("categories", [cat.name]);
 
+        const primaryCount = countError ? 0 : count || 0;
+        if (primaryCount > 0 || !cat?.id) {
+          return {
+            ...cat,
+            count: primaryCount,
+          };
+        }
+
+        const { count: fallbackCount, error: fallbackError } = await supabase2
+          .from("listings")
+          .select("*", { count: "exact", head: true })
+          .contains("category_ids", [cat.id]);
+
         return {
           ...cat,
-          count: countError ? 0 : count || 0,
+          count: fallbackError ? 0 : fallbackCount || 0,
         };
       })
     );

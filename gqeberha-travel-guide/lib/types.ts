@@ -101,3 +101,22 @@ export interface SearchResult extends Listing {
 export interface FeaturedListing extends Listing {
   category: string;
 }
+
+// Event type
+export interface EventItem {
+  id: string;
+  title: string;
+  slug?: string;
+  description: string;
+  starts_at: string;
+  ends_at?: string;
+  venue: string;
+  city?: string;
+  category?: string;
+  featured?: boolean;
+  price_label?: string;
+  ticket_url?: string;
+  featured_image?: string;
+  created_at?: string;
+  updated_at?: string;
+}
