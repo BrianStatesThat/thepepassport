@@ -2,23 +2,12 @@
 
 import { Compass, Search, X } from "lucide-react";
 import Link from "next/link";
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 
 export function Header() {
-  const [isScrolled, setIsScrolled] = useState(false);
   const [searchActive, setSearchActive] = useState(false);
   const [menuActive, setMenuActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-
-  useEffect(() => {
-    const handleScroll = () => {
-      // Show search bar when scrolled past hero (roughly 500px)
-      setIsScrolled(window.scrollY > 400);
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   const handleSearchSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -54,21 +43,19 @@ export function Header() {
               Explore
             </Link>
 
-            {/* Desktop Search Bar - Shows when scrolled past hero */}
-            {isScrolled && (
-              <form onSubmit={handleSearchSubmit} className="ml-4">
-                <div className="bg-gray-100 dark:bg-slate-800 rounded-full px-4 py-2 flex items-center gap-2 w-64">
-                  <Search className="w-4 h-4 text-gray-400 shrink-0" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Find your gem..."
-                    className="flex-1 outline-none text-dark-gray dark:text-white dark:bg-slate-800 text-sm bg-transparent"
-                  />
-                </div>
-              </form>
-            )}
+            {/* Desktop Search Bar */}
+            <form onSubmit={handleSearchSubmit} className="ml-4">
+              <div className="bg-gray-100 dark:bg-slate-800 rounded-full px-4 py-2 flex items-center gap-2 w-64">
+                <Search className="w-4 h-4 text-gray-400 shrink-0" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Find your gem..."
+                  className="flex-1 outline-none text-dark-gray dark:text-white dark:bg-slate-800 text-sm bg-transparent"
+                />
+              </div>
+            </form>
           </nav>
 
           {/* Mobile: Search Icon + Menu Button (search is rendered as absolute overlay to avoid layout/overflow issues) */}
