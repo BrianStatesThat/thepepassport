@@ -27,21 +27,136 @@ function formatSupabaseError(error: unknown) {
   return { message: String(error) };
 }
 
+const LISTING_SELECT = `
+  *,
+  listing_images (
+    storage_path,
+    public_url,
+    is_primary,
+    created_at
+  )
+`;
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+const LISTINGS_BUCKET = process.env.NEXT_PUBLIC_SUPABASE_LISTINGS_BUCKET ?? "listings";
+
+type ListingImageRow = {
+  storage_path?: string | null;
+  public_url?: string | null;
+  is_primary?: boolean | null;
+  created_at?: string | null;
+};
+
 type ListingRow = Partial<Listing> & {
   name?: string | null;
   title?: string | null;
+  categories?: string[] | null;
+  category_ids?: string[] | null;
+  images?: string[] | null;
+  featured_image?: string | null;
+  address?: string | null;
+  street?: string | null;
+  city?: string | null;
+  region?: string | null;
+  postal_code?: string | null;
+  country?: string | null;
+  latitude?: number | string | null;
+  longitude?: number | string | null;
+  phone?: string | null;
+  email?: string | null;
+  website?: string | null;
+  avg_rating?: number | string | null;
+  ratings_count?: number | null;
+  is_featured?: boolean | null;
+  is_verified?: boolean | null;
+  listing_images?: ListingImageRow[] | null;
 };
+
+function toText(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function toNumber(value: unknown, fallback = 0): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+  return fallback;
+}
+
+function buildPublicStorageUrl(storagePath: string | null): string | null {
+  if (!storagePath) return null;
+  if (!SUPABASE_URL) return null;
+  const cleanedPath = storagePath.replace(/^\/+/, "");
+  const encodedPath = cleanedPath
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+  return `${SUPABASE_URL}/storage/v1/object/public/${LISTINGS_BUCKET}/${encodedPath}`;
+}
 
 function normalizeListingRow(row: unknown): Listing {
   const source = (row && typeof row === "object" ? row : {}) as ListingRow;
-  const resolvedTitle = (typeof source.title === "string" && source.title.trim())
-    ? source.title
-    : (typeof source.name === "string" && source.name.trim())
-      ? source.name
-      : "Untitled";
+  const resolvedTitle = toText(source.title) ?? toText(source.name) ?? "Untitled";
+  const relationImages = Array.isArray(source.listing_images)
+    ? [...source.listing_images]
+        .sort((a, b) => {
+          if (!!a?.is_primary !== !!b?.is_primary) return a?.is_primary ? -1 : 1;
+          return toNumber(new Date(a?.created_at ?? 0).getTime(), 0) - toNumber(new Date(b?.created_at ?? 0).getTime(), 0);
+        })
+        .map((img) => toText(img?.public_url) ?? buildPublicStorageUrl(toText(img?.storage_path)))
+        .filter((value): value is string => !!value)
+    : [];
+  const inlineImages = Array.isArray(source.images)
+    ? source.images.map((img) => toText(img)).filter((value): value is string => !!value)
+    : [];
+  const fallbackFeatured = toText(source.featured_image);
+  const featuredImage = fallbackFeatured ?? relationImages[0] ?? inlineImages[0] ?? "";
+  const images = Array.from(new Set([featuredImage, ...relationImages, ...inlineImages].filter(Boolean)));
+  const street = toText(source.street);
+  const address = toText(source.address);
+  const baseAddress = [street, address].filter(Boolean).join(", ");
+  const city = toText(source.city);
+  const region = toText(source.region);
+  const postalCode = toText(source.postal_code);
+  const country = toText(source.country);
+  const formattedAddress = [baseAddress, city, region, postalCode, country].filter(Boolean).join(", ");
+  const existingLocation = source.location && typeof source.location === "object"
+    ? source.location
+    : null;
+  const existingContact = source.contact && typeof source.contact === "object"
+    ? source.contact
+    : null;
+  const categories = Array.isArray(source.categories) ? source.categories : [];
+
   return {
     ...(source as Listing),
+    id: toText(source.id) ?? "",
+    slug: toText(source.slug) ?? "",
     title: resolvedTitle,
+    description: toText(source.description) ?? "",
+    categories,
+    images,
+    featured_image: featuredImage,
+    location: {
+      address: toText(existingLocation?.address) ?? formattedAddress,
+      lat: toNumber(existingLocation?.lat ?? source.latitude, 0),
+      lng: toNumber(existingLocation?.lng ?? source.longitude, 0),
+      area: toText(existingLocation?.area) ?? region ?? undefined,
+    },
+    contact: {
+      phone: toText(existingContact?.phone) ?? toText(source.phone) ?? undefined,
+      email: toText(existingContact?.email) ?? toText(source.email) ?? undefined,
+      website: toText(existingContact?.website) ?? toText(source.website) ?? undefined,
+    },
+    rating: toNumber(source.rating ?? source.avg_rating, 0),
+    review_count: toNumber(source.review_count ?? source.ratings_count, 0),
+    featured: Boolean(source.featured ?? source.is_featured),
+    verified: Boolean(source.verified ?? source.is_verified),
+    status: (toText(source.status) as Listing["status"]) ?? "draft",
+    created_at: toText(source.created_at) ?? new Date(0).toISOString(),
+    updated_at: toText(source.updated_at) ?? new Date(0).toISOString(),
   };
 }
 
@@ -50,7 +165,7 @@ export const listingsAPI = {
   // Get all listings, optionally filtered by category
   async getListings(category?: string, limit = 20): Promise<Listing[]> {
     const supabase = await getServerSupabase();
-    let query = supabase.from("listings").select("*");
+    let query = supabase.from("listings").select(LISTING_SELECT);
 
     if (category) {
       query = query.contains("categories", [category]);
@@ -81,7 +196,7 @@ export const listingsAPI = {
     const supabase = await getServerSupabase();
     let query = supabase
       .from("listings")
-      .select("*", { count: "exact" });
+      .select(LISTING_SELECT, { count: "exact" });
 
     if (category) {
       query = query.contains("categories", [category]);
@@ -119,7 +234,7 @@ export const listingsAPI = {
     const supabase = await getServerSupabase();
     const { data, error } = await supabase
       .from("listings")
-      .select("*")
+      .select(LISTING_SELECT)
       .eq("featured", true)
       .limit(limit)
       .order("created_at", { ascending: false });
@@ -129,7 +244,7 @@ export const listingsAPI = {
     // Backward-compatible fallback for schemas that still use `is_featured`.
     const { data: legacyData, error: legacyError } = await supabase
       .from("listings")
-      .select("*")
+      .select(LISTING_SELECT)
       .eq("is_featured", true)
       .limit(limit)
       .order("created_at", { ascending: false });
@@ -146,7 +261,7 @@ export const listingsAPI = {
   // Get single listing by slug
   async getListingBySlug(slug: string): Promise<Listing | null> {
     const supabase = await getServerSupabase();
-    const { data, error } = await supabase.from("listings").select("*").eq("slug", slug).single();
+    const { data, error } = await supabase.from("listings").select(LISTING_SELECT).eq("slug", slug).single();
 
     if (error) {
       console.error("Error fetching listing:", error);
@@ -158,18 +273,28 @@ export const listingsAPI = {
   // Search listings
   async searchListings(searchQuery: string, limit = 20): Promise<Listing[]> {
     const supabase = await getServerSupabase();
-    const { data, error } = await supabase
-      .from("listings")
-      .select("*")
-      .or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`)
-      .limit(limit)
-      .order("created_at", { ascending: false });
+    const runSearch = (nameField: "title" | "name") =>
+      supabase
+        .from("listings")
+        .select(LISTING_SELECT)
+        .or(`${nameField}.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`)
+        .limit(limit)
+        .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("Error searching listings:", error);
+    const { data, error } = await runSearch("title");
+
+    if (!error) return (data || []).map(normalizeListingRow);
+
+    const { data: fallbackData, error: fallbackError } = await runSearch("name");
+    if (fallbackError) {
+      console.error("Error searching listings:", {
+        titleSearchError: formatSupabaseError(error),
+        nameSearchError: formatSupabaseError(fallbackError),
+      });
       return [];
     }
-    return (data || []).map(normalizeListingRow);
+
+    return (fallbackData || []).map(normalizeListingRow);
   },
 
   // Get listings by category with count
@@ -177,7 +302,7 @@ export const listingsAPI = {
     const supabase = await getServerSupabase();
     const { data, error } = await supabase
       .from("listings")
-      .select("*")
+      .select(LISTING_SELECT)
       .contains("categories", [categoryName])
       .limit(limit)
       .order("created_at", { ascending: false });
@@ -207,7 +332,29 @@ export const blogAPI = {
     }
 
     // Normalize DB rows to the app's BlogPost shape
-    return (data || []).map((p: any) => {
+    return (data || []).map((row) => {
+      const p = (row && typeof row === "object" ? row : {}) as {
+        id?: string;
+        slug?: string;
+        title?: string;
+        name?: string;
+        excerpt?: string;
+        summary?: string;
+        content?: string;
+        featured_image?: string;
+        image?: string;
+        published_at?: string;
+        published?: boolean;
+        author?: string;
+        read_time?: number | string;
+        reading_time?: number | string;
+        readTime?: number | string;
+        tags?: string[];
+        tag_list?: string[];
+        related_listings?: string[];
+        created_at?: string;
+        updated_at?: string;
+      };
       const ts = p.published_at ?? p.updated_at ?? p.created_at ?? null;
       const published_at = ts ? new Date(ts).toISOString() : null;
       const reading_time = p.read_time ?? p.reading_time ?? p.readTime ?? null;

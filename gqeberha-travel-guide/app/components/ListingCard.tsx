@@ -28,6 +28,7 @@ export function ListingCard({ listing, onClick }: ListingCardProps) {
           style={{
             backgroundImage: `url(${listing.featured_image})`,
             backgroundColor: "#cbd5e1",
+            backgroundPosition: "center 40%",
           }}
         />
         {isFeatured && (

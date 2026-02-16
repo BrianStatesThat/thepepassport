@@ -101,7 +101,11 @@ export function DiscoverSection({
                 <div className="relative h-48 bg-linear-to-br from-blue-200 to-blue-300 overflow-hidden">
                   <div
                     className="w-full h-full bg-cover bg-center ease-in-out"
-                    style={{ backgroundColor: "#cbd5e1", backgroundImage: image ? `url(${image})` : undefined }}
+                    style={{
+                      backgroundColor: "#cbd5e1",
+                      backgroundImage: image ? `url(${image})` : undefined,
+                      backgroundPosition: "center 40%",
+                    }}
                   />
                   {showFeatured && (
                     <div className="absolute top-3 right-3 bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
