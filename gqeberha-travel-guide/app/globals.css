@@ -45,11 +45,11 @@ html {
 
 body {
   @apply bg-white dark:bg-slate-950 text-dark-gray dark:text-slate-100;
-  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  font-family: "Segoe UI", "Inter", system-ui, -apple-system, sans-serif;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-poppins), system-ui, -apple-system, sans-serif;
+  font-family: "Avenir Next", "Poppins", "Segoe UI", system-ui, -apple-system, sans-serif;
   font-weight: 700;
 }
 
