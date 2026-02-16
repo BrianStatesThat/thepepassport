@@ -31,13 +31,36 @@ export default async function HomePage() {
     ]);
     listings = (listingsData as Listing[]) || [];
 
-    blogPosts = (((postsData as BlogRow[]) || []).map((p) => ({
-      ...p,
-      // ensure id is a number
-      id: typeof p.id === "string" ? parseInt(p.id, 10) || 0 : (p.id ?? 0),
-      date: p.date ?? p.published_at ?? new Date().toISOString(),
-      readTime: p.readTime ?? (p.reading_time ? `${p.reading_time} min` : "1 min"),
-    })) as BlogPost[]);
+    blogPosts = ((postsData as BlogRow[]) || []).map((p, index): BlogPost => {
+      const fallbackTimestamp = new Date().toISOString();
+      const publishedAt = p.published_at ?? fallbackTimestamp;
+      const parsedReadingTime = typeof p.reading_time === "string"
+        ? Number.parseInt(p.reading_time, 10)
+        : p.reading_time;
+      const readingTimeValue = Number.isFinite(parsedReadingTime) && (parsedReadingTime ?? 0) > 0
+        ? Number(parsedReadingTime)
+        : 1;
+      const id = p.id != null ? String(p.id) : `post-${index + 1}`;
+
+      return {
+        id,
+        slug: p.slug ?? `post-${index + 1}`,
+        title: p.title ?? "Untitled",
+        excerpt: p.excerpt ?? "",
+        content: p.content ?? "",
+        featured_image: p.featured_image ?? "",
+        published_at: publishedAt,
+        published: typeof p.published === "boolean" ? p.published : true,
+        author: p.author ?? "The PE Passport",
+        reading_time: readingTimeValue,
+        tags: Array.isArray(p.tags) ? p.tags : [],
+        related_listings: Array.isArray(p.related_listings) ? p.related_listings : [],
+        created_at: p.created_at ?? publishedAt,
+        updated_at: p.updated_at ?? publishedAt,
+        date: p.date ?? publishedAt,
+        readTime: p.readTime ?? `${readingTimeValue} min`,
+      };
+    });
   } catch (err) {
     console.error("Error fetching data:", err);
     // Components will use default mock data if fetch fails
