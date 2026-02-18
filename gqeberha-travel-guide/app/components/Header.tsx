@@ -34,7 +34,7 @@ export function Header() {
           {/* Desktop Navigation + Search */}
           <nav className="hidden md:flex gap-8 items-center flex-1 justify-end">
             <Link href="/listings" className="text-dark-gray dark:text-slate-200 hover:text-blue-600 font-medium transition">
-              All Listings
+              Listings
             </Link>
             <Link href="/blog" className="text-dark-gray dark:text-slate-200 hover:text-blue-600 font-medium transition">
               Blog
