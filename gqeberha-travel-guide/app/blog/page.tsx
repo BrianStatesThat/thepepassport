@@ -1,14 +1,41 @@
+import type { Metadata } from "next";
 import { Header } from "@/app/components/Header";
 import { BlogSection } from "@/app/components/BlogSection";
 import { Footer } from "@/app/components/Footer";
+import { JsonLd } from "@/app/components/JsonLd";
 import { blogAPI } from "@/lib/supabase";
+import { absoluteUrl, buildPageMetadata, toJsonLd } from "@/lib/seo";
+
+export const metadata: Metadata = buildPageMetadata({
+  title: "Gqeberha Travel Tips & Local Insights",
+  description:
+    "Read local travel tips, destination guides, and practical planning advice for Gqeberha (Port Elizabeth) and Nelson Mandela Bay.",
+  path: "/blog",
+  keywords: ["Gqeberha travel blog", "Port Elizabeth travel tips", "Nelson Mandela Bay travel advice"],
+});
 
 export const dynamic = "force-dynamic";
 
 export default async function BlogPage() {
   // Raw rows returned by Supabase may have snake_case fields (published_at, read_time)
   // Map them to the shape expected by BlogSection (id:number, title, excerpt, date, readTime, featured_image)
-  type RawPost = Record<string, any>;
+  type RawPost = {
+    id?: number | string;
+    title?: string | null;
+    headline?: string | null;
+    excerpt?: string | null;
+    summary?: string | null;
+    published_at?: string | null;
+    created_at?: string | null;
+    updated_at?: string | null;
+    read_time?: number | string | null;
+    readTime?: number | string | null;
+    reading_time?: number | string | null;
+    featured_image?: string | null;
+    featuredImage?: string | null;
+    image?: string | null;
+    slug?: string | null;
+  };
   type DisplayPost = {
     id: number;
     title: string;
@@ -45,9 +72,29 @@ export default async function BlogPage() {
     error = "Failed to load blog posts";
   }
 
+  const blogIndexJsonLd = toJsonLd({
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    name: "The PE Passport Blog",
+    description: "Travel guides and local insights for Gqeberha (Port Elizabeth).",
+    url: absoluteUrl("/blog"),
+    blogPost: rawPosts
+      .filter((p: RawPost) => typeof p.slug === "string" && p.slug)
+      .slice(0, 20)
+      .map((p: RawPost) => ({
+        "@type": "BlogPosting",
+        headline: p.title || p.headline || "Untitled",
+        url: absoluteUrl(`/blog/${p.slug}`),
+        datePublished: p.published_at || p.created_at || undefined,
+        dateModified: p.updated_at || p.published_at || p.created_at || undefined,
+        image: p.featured_image || p.featuredImage || p.image || undefined,
+      })),
+  });
+
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950">
       <Header />
+      <JsonLd id="blog-index-jsonld" data={blogIndexJsonLd} />
 
       {/* Page Header */}
       <section className="bg-linear-to-r from-blue-500 to-blue-600 py-16">

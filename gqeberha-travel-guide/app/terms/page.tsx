@@ -1,5 +1,14 @@
+import type { Metadata } from "next";
 import { Header } from "@/app/components/Header";
 import { Footer } from "@/app/components/Footer";
+import { buildPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildPageMetadata({
+  title: "Terms and Conditions",
+  description: "Terms and conditions for using The PE Passport travel guide website.",
+  path: "/terms",
+  keywords: ["The PE Passport terms and conditions"],
+});
 
 export const dynamic = "force-static";
 
@@ -92,4 +101,3 @@ export default function TermsPage() {
     </div>
   );
 }
-

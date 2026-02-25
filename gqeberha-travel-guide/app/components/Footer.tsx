@@ -22,7 +22,7 @@ export function Footer({
   brandTagline = "Discover your next adventure",
   quickLinks,
   showNewsletter = true,
-  copyrightYear = 2025,
+  copyrightYear = 2026,
   companyName = "The GQ Passport",
 }: FooterProps) {
   const defaultQuickLinks: FooterLink[] = [

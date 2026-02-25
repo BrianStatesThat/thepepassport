@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Header } from "@/app/components/Header";
 import { DiscoverSection } from "@/app/components/DiscoverSection";
 import { Footer } from "@/app/components/Footer";
+import { JsonLd } from "@/app/components/JsonLd";
 import { listingsAPI } from "@/lib/supabase";
+import { absoluteUrl, buildPageMetadata, canonicalUrl, toJsonLd } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +23,47 @@ interface ListingsPageProps {
 
 function isPromise<T>(value: T | Promise<T>): value is Promise<T> {
   return typeof (value as Promise<T>)?.then === "function";
+}
+
+export async function generateMetadata({ searchParams }: ListingsPageProps): Promise<Metadata> {
+  const resolvedSearchParams = searchParams
+    ? (isPromise(searchParams) ? await searchParams : searchParams)
+    : {};
+
+  const rawPage = Array.isArray(resolvedSearchParams.page)
+    ? resolvedSearchParams.page[0]
+    : resolvedSearchParams.page;
+  const rawCategory = Array.isArray(resolvedSearchParams.category)
+    ? resolvedSearchParams.category[0]
+    : resolvedSearchParams.category;
+
+  const requestedPage = Number.parseInt(rawPage ?? "1", 10);
+  const page = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const activeCategory = rawCategory && rawCategory.trim() ? rawCategory.trim() : "";
+
+  const titleBase = activeCategory
+    ? `${activeCategory} Listings in Gqeberha`
+    : "All Listings in Gqeberha";
+
+  const metadata = buildPageMetadata({
+    title: page > 1 ? `${titleBase} (Page ${page})` : titleBase,
+    description: activeCategory
+      ? `Browse ${activeCategory.toLowerCase()} places in Gqeberha (Port Elizabeth), including local recommendations, addresses, and travel planning details.`
+      : "Browse local Gqeberha (Port Elizabeth) listings for attractions, food, stays, and experiences.",
+    path: "/listings",
+    keywords: activeCategory
+      ? [`${activeCategory} Gqeberha`, `${activeCategory} Port Elizabeth`]
+      : ["Gqeberha listings", "Port Elizabeth listings"],
+  });
+
+  metadata.alternates = {
+    canonical: canonicalUrl("/listings", {
+      ...(activeCategory ? { category: activeCategory } : {}),
+      ...(page > 1 ? { page } : {}),
+    }),
+  };
+
+  return metadata;
 }
 
 export default async function ListingsPage({ searchParams }: ListingsPageProps) {
@@ -52,6 +96,22 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
   const subtitle = activeCategory
     ? `Showing ${start}-${end} of ${total} listings in ${activeCategory}`
     : `Showing ${start}-${end} of ${total} listings`;
+  const listingsJsonLd = toJsonLd({
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: activeCategory ? `${activeCategory} Listings in Gqeberha` : "All Listings in Gqeberha",
+    url: absoluteUrl("/listings"),
+    mainEntity: {
+      "@type": "ItemList",
+      numberOfItems: listings.length,
+      itemListElement: listings.map((listing, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        url: absoluteUrl(`/listings/${listing.slug}`),
+        name: listing.title,
+      })),
+    },
+  });
 
   const listingsHref = (nextPage: number, category?: string) => {
     const params = new URLSearchParams();
@@ -64,6 +124,7 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950">
       <Header />
+      <JsonLd id="listings-page-jsonld" data={listingsJsonLd} />
 
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <Link href="/" className="flex items-center text-blue-500 dark:text-blue-400 hover:underline w-fit">

@@ -1,9 +1,19 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronLeft, MapPin, Phone, Mail, Globe, Clock, Tag, Star, ShieldCheck, Navigation } from "lucide-react";
 import { notFound } from "next/navigation";
 import { Header } from "@/app/components/Header";
+import { JsonLd } from "@/app/components/JsonLd";
 import { Footer } from "@/app/components/Footer";
 import { listingsAPI } from "@/lib/supabase";
+import {
+  absoluteUrl,
+  buildPageMetadata,
+  clampText,
+  createBreadcrumbJsonLd,
+  stripHtml,
+  toJsonLd,
+} from "@/lib/seo";
 
 interface ListingPageProps {
   params: {
@@ -11,6 +21,49 @@ interface ListingPageProps {
   } | Promise<{
     slug: string;
   }>;
+}
+
+function inferListingSchemaType(categories: string[] | undefined) {
+  const normalized = (categories || []).map((cat) => cat.toLowerCase());
+  if (normalized.some((cat) => cat.includes("eat") || cat.includes("restaurant") || cat.includes("food"))) {
+    return "Restaurant";
+  }
+  if (normalized.some((cat) => cat.includes("stay") || cat.includes("hotel") || cat.includes("accommodation"))) {
+    return "LodgingBusiness";
+  }
+  return "TouristAttraction";
+}
+
+export async function generateMetadata({ params }: ListingPageProps): Promise<Metadata> {
+  const { slug } = await Promise.resolve(params);
+  const listing = await listingsAPI.getListingBySlug(slug);
+
+  if (!listing) {
+    return buildPageMetadata({
+      title: "Listing Not Found",
+      description: "This listing could not be found.",
+      path: `/listings/${slug}`,
+      noIndex: true,
+    });
+  }
+
+  const descriptionSource = listing.long_description || listing.description || "";
+  const description = clampText(stripHtml(descriptionSource), 160)
+    || `Discover ${listing.title} in Gqeberha (Port Elizabeth).`;
+
+  return buildPageMetadata({
+    title: `${listing.title} | Gqeberha`,
+    description,
+    path: `/listings/${listing.slug}`,
+    image: listing.featured_image || listing.images?.[0] || null,
+    keywords: [
+      listing.title,
+      ...(listing.categories || []),
+      "Gqeberha",
+      "Port Elizabeth",
+      listing.location?.area || "",
+    ],
+  });
 }
 
 export default async function ListingDetailPage({ params }: ListingPageProps) {
@@ -39,10 +92,54 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
     : listing.location?.address
       ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(listing.location.address)}`
       : null;
+  const listingSchemaType = inferListingSchemaType(listing.categories);
+  const listingJsonLd = toJsonLd({
+    "@context": "https://schema.org",
+    "@type": listingSchemaType,
+    name: listing.title,
+    description: clampText(stripHtml(displayDescription), 500) || listing.title,
+    url: absoluteUrl(`/listings/${listing.slug}`),
+    image: listing.images?.filter(Boolean),
+    telephone: listing.contact?.phone || undefined,
+    email: listing.contact?.email || undefined,
+    priceRange: listing.price_range || undefined,
+    address: listing.location?.address
+      ? {
+          "@type": "PostalAddress",
+          streetAddress: listing.location.address,
+          addressLocality: "Gqeberha",
+          addressRegion: "Eastern Cape",
+          addressCountry: "ZA",
+        }
+      : undefined,
+    geo: hasCoords
+      ? {
+          "@type": "GeoCoordinates",
+          latitude: listing.location.lat,
+          longitude: listing.location.lng,
+        }
+      : undefined,
+    aggregateRating:
+      hasRating && listing.review_count
+        ? {
+            "@type": "AggregateRating",
+            ratingValue: listing.rating,
+            reviewCount: listing.review_count,
+          }
+        : undefined,
+    sameAs: listing.contact?.website ? [listing.contact.website] : undefined,
+  });
+  const breadcrumbJsonLd = createBreadcrumbJsonLd([
+    { name: "Home", path: "/" },
+    { name: "Listings", path: "/listings" },
+    { name: listing.title, path: `/listings/${listing.slug}` },
+  ]);
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950">
       <Header />
+      <JsonLd id="listing-jsonld" data={listingJsonLd} />
+      <JsonLd id="listing-breadcrumb-jsonld" data={breadcrumbJsonLd} />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <nav className="mb-6">

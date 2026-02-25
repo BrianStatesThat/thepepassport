@@ -1,11 +1,27 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { CalendarDays, Compass, Route, Sparkles, Ticket, Wallet } from "lucide-react";
 import { Header } from "@/app/components/Header";
 import { Footer } from "@/app/components/Footer";
 import { ListingCard } from "@/app/components/ListingCard";
+import { JsonLd } from "@/app/components/JsonLd";
 import { categoriesAPI, listingsAPI } from "@/lib/supabase";
 import { demoEvents, getUpcomingEvents } from "@/lib/demo/events";
 import type { Listing } from "@/lib/types";
+import { absoluteUrl, buildPageMetadata, toJsonLd } from "@/lib/seo";
+
+export const metadata: Metadata = buildPageMetadata({
+  title: "Explore Gqeberha",
+  description:
+    "Build a Gqeberha (Port Elizabeth) itinerary with featured places, category shortcuts, and upcoming local events in one planning page.",
+  path: "/explore",
+  keywords: [
+    "Gqeberha itinerary",
+    "Port Elizabeth itinerary",
+    "Gqeberha travel planner",
+    "things to do in Gqeberha",
+  ],
+});
 
 export const dynamic = "force-dynamic";
 
@@ -90,10 +106,18 @@ export default async function ExplorePage() {
   }
 
   const upcomingEvents = getUpcomingEvents(demoEvents, 3);
+  const exploreJsonLd = toJsonLd({
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Explore Gqeberha",
+    description: "Trip planning page with category shortcuts, featured places, and upcoming events.",
+    url: absoluteUrl("/explore"),
+  });
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950">
       <Header />
+      <JsonLd id="explore-page-jsonld" data={exploreJsonLd} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <section className="relative overflow-hidden rounded-2xl border border-blue-200/70 dark:border-blue-800/40 bg-gradient-to-r from-sky-50 via-blue-50 to-cyan-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 p-6 sm:p-8">

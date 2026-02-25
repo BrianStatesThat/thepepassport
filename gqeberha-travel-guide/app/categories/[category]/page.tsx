@@ -1,10 +1,13 @@
+import type { Metadata } from "next";
 import { Header } from "@/app/components/Header";
 import { DiscoverSection } from "@/app/components/DiscoverSection";
 import { Footer } from "@/app/components/Footer";
+import { JsonLd } from "@/app/components/JsonLd";
 import { listingsAPI } from "@/lib/supabase";
 import type { Listing } from "@/lib/types";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
+import { absoluteUrl, buildPageMetadata, createBreadcrumbJsonLd, toJsonLd } from "@/lib/seo";
 
 interface CategoryPageProps {
   params: {
@@ -12,6 +15,22 @@ interface CategoryPageProps {
   } | Promise<{
     category: string;
   }>;
+}
+
+export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
+  const { category } = await Promise.resolve(params);
+  const decodedCategory = decodeURIComponent(category);
+
+  return buildPageMetadata({
+    title: `${decodedCategory} in Gqeberha`,
+    description: `Explore ${decodedCategory.toLowerCase()} experiences and local recommendations in Gqeberha (Port Elizabeth).`,
+    path: `/categories/${encodeURIComponent(decodedCategory)}`,
+    keywords: [
+      `${decodedCategory} Gqeberha`,
+      `${decodedCategory} Port Elizabeth`,
+      `things to do in Gqeberha`,
+    ],
+  });
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
@@ -28,9 +47,32 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
     error = "Failed to load listings";
   }
 
+  const categoryPageJsonLd = toJsonLd({
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: `${decodedCategory} in Gqeberha`,
+    url: absoluteUrl(`/categories/${encodeURIComponent(decodedCategory)}`),
+    mainEntity: {
+      "@type": "ItemList",
+      numberOfItems: listings.length,
+      itemListElement: listings.map((listing, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        url: absoluteUrl(`/listings/${listing.slug}`),
+        name: listing.title,
+      })),
+    },
+  });
+  const breadcrumbJsonLd = createBreadcrumbJsonLd([
+    { name: "Home", path: "/" },
+    { name: decodedCategory, path: `/categories/${encodeURIComponent(decodedCategory)}` },
+  ]);
+
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950">
       <Header />
+      <JsonLd id="category-page-jsonld" data={categoryPageJsonLd} />
+      <JsonLd id="category-breadcrumb-jsonld" data={breadcrumbJsonLd} />
 
       {/* Breadcrumb */}
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 mb-8">

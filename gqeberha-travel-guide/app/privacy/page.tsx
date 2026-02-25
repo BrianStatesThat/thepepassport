@@ -1,5 +1,14 @@
+import type { Metadata } from "next";
 import { Header } from "@/app/components/Header";
 import { Footer } from "@/app/components/Footer";
+import { buildPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildPageMetadata({
+  title: "Privacy Policy",
+  description: "Privacy policy for The PE Passport travel guide and related services.",
+  path: "/privacy",
+  keywords: ["The PE Passport privacy policy"],
+});
 
 export const dynamic = "force-static";
 
@@ -109,4 +118,3 @@ export default function PrivacyPolicyPage() {
     </div>
   );
 }
-

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Header } from "@/app/components/Header";
 import { Hero } from "@/app/components/Hero";
 import { DiscoverSection } from "@/app/components/DiscoverSection";
@@ -5,9 +6,25 @@ import { CategoryNavigation } from "@/app/components/CategoryNavigation";
 import { EventsSection } from "@/app/components/EventsSection";
 import { BlogSection } from "@/app/components/BlogSection";
 import { Footer } from "@/app/components/Footer";
+import { JsonLd } from "@/app/components/JsonLd";
 import { listingsAPI, blogAPI } from "@/lib/supabase";
 import { demoEvents, getUpcomingEvents } from "@/lib/demo/events";
 import type { Listing, BlogPost } from "@/lib/types";
+import { absoluteUrl, buildPageMetadata, createBreadcrumbJsonLd, toJsonLd } from "@/lib/seo";
+
+export const metadata: Metadata = buildPageMetadata({
+  title: "Gqeberha & Port Elizabeth Travel Guide",
+  description:
+    "Plan your trip to Gqeberha (Port Elizabeth) with local attractions, places to eat and stay, upcoming events, and travel tips curated by The PE Passport.",
+  path: "/",
+  keywords: [
+    "Gqeberha attractions",
+    "Port Elizabeth things to do",
+    "Gqeberha restaurants",
+    "Port Elizabeth hotels",
+    "Gqeberha events",
+  ],
+});
 
 export const dynamic = "force-dynamic";
 
@@ -67,11 +84,31 @@ export default async function HomePage() {
   }
 
   const upcomingHomeEvents = getUpcomingEvents(demoEvents, 5);
+  const homeJsonLd = toJsonLd({
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Gqeberha & Port Elizabeth Travel Guide",
+    description:
+      "Travel guide hub for Gqeberha (Port Elizabeth) with local listings, events, and blog tips.",
+    url: absoluteUrl("/"),
+    mainEntity: {
+      "@type": "ItemList",
+      itemListElement: listings.slice(0, 6).map((listing, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        url: absoluteUrl(`/listings/${listing.slug}`),
+        name: listing.title,
+      })),
+    },
+  });
+  const homeBreadcrumbJsonLd = createBreadcrumbJsonLd([{ name: "Home", path: "/" }]);
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950">
       <Header />
       <Hero />
+      <JsonLd id="home-page-jsonld" data={homeJsonLd} />
+      <JsonLd id="home-breadcrumb-jsonld" data={homeBreadcrumbJsonLd} />
 
       {/* MAIN CONTENT */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
