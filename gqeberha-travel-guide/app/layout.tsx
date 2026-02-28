@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next"
 import { ScrollToTopButton } from "@/app/components/ScrollToTopButton";
 import { JsonLd } from "@/app/components/JsonLd";
 import {
@@ -70,6 +71,7 @@ export default function RootLayout({
         <JsonLd id="organization-jsonld" data={createOrganizationJsonLd()} />
         {children}
         <ScrollToTopButton />
+        <Analytics/>
       </body>
     </html>
   );
