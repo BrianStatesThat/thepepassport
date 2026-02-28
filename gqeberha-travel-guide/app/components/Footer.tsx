@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Compass } from "lucide-react";
+import { Compass, Facebook, Instagram, Twitter } from "lucide-react";
 
 interface FooterLink {
   label: string;
@@ -73,22 +73,13 @@ export function Footer({
             <h4 className="font-bold text-dark-gray dark:text-white mb-4 text-sm md:text-base">Connect</h4>
             <div className="flex gap-3">
               <a href="https://facebook.com" className="text-gray-600 dark:text-slate-400 hover:text-blue-600 transition shrink-0">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                </svg>
+                <Facebook className="w-5 h-5" />
               </a>
               <a href="https://twitter.com" className="text-gray-600 dark:text-slate-400 hover:text-blue-600 transition shrink-0">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M23.953 4.57a10 10 0 002.856-3.515 10.009 10.009 0 01-2.8.856 4.995 4.995 0 002.165-2.724c-.951.564-2.005.974-3.127 1.195a4.992 4.992 0 00-8.506 4.547A14.148 14.148 0 011.392 6.859a4.986 4.986 0 001.546 6.35 4.934 4.934 0 01-2.261-.569v.06a4.993 4.993 0 003.995 4.882 4.996 4.996 0 01-2.228.084 4.996 4.996 0 004.662 3.418A10.01 10.01 0 010 19.54a14.11 14.11 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" />
-                </svg>
+                <Twitter className="w-5 h-5" />
               </a>
               <a href="https://instagram.com" className="text-gray-600 dark:text-slate-400 hover:text-blue-600 transition shrink-0">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <rect width="24" height="24" fill="none" />
-                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5" fill="none" stroke="currentColor" strokeWidth="2" />
-                  <circle cx="12" cy="12" r="3" fill="currentColor" />
-                  <circle cx="17" cy="7" r="1.5" fill="currentColor" />
-                </svg>
+                <Instagram className="w-5 h-5" />
               </a>
             </div>
           </div>
