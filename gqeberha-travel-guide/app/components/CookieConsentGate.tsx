@@ -65,7 +65,7 @@ export function CookieConsentGate({ initialConsent = "unknown" }: CookieConsentG
   const rejected = consent === "rejected";
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/65 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-100 flex items-center justify-center bg-slate-900/65 backdrop-blur-sm p-4">
       <div
         role="dialog"
         aria-modal="true"

@@ -1,4 +1,5 @@
 import { MapPin, Star } from "lucide-react";
+import Image from "next/image";
 import type { Listing } from "@/lib/types";
 
 interface ListingCardProps {
@@ -22,15 +23,20 @@ export function ListingCard({ listing, onClick }: ListingCardProps) {
       className="group bg-white dark:bg-slate-900 rounded-lg overflow-hidden shadow-md hover:shadow-xl transition duration-300 cursor-pointer"
     >
       {/* Image Container */}
-      <div className="relative h-48 bg-line-to-br from-blue-200 to-blue-300 overflow-hidden">
-        <div
-          className="w-full h-full bg-cover bg-center"
-          style={{
-            backgroundImage: `url(${listing.featured_image})`,
-            backgroundColor: "#cbd5e1",
-            backgroundPosition: "center 40%",
-          }}
-        />
+      <div className="relative h-48 bg-gray-100 dark:bg-slate-800 overflow-hidden">
+        {listing.featured_image ? (
+          <Image
+            src={listing.featured_image}
+            alt={`${displayTitle} - Gqeberha attraction`}
+            fill
+            className="object-cover object-center group-hover:scale-105 transition-transform duration-300"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          />
+        ) : (
+          <div className="w-full h-full bg-linear-to-br from-blue-200 to-blue-300 flex items-center justify-center">
+            <MapPin className="w-12 h-12 text-blue-400" />
+          </div>
+        )}
         {isFeatured && (
           <div className="absolute top-3 right-3 bg-sunset-orange text-white px-3 py-1 rounded-full text-xs font-semibold">
             Featured

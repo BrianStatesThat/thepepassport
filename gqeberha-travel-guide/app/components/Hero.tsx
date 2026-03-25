@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Search } from "lucide-react";
 import { SearchBar } from "./SearchBar";
 
@@ -15,20 +16,20 @@ export function Hero({
   showSearch = true,
 }: HeroProps) {
   return (
-    <section className="relative h-96 md:h-125 bg-linear-to-b from-blue-400 to-blue-500 overflow-hidden">
-      {/* Background pattern */}
-      <div
-        className="absolute inset-0 opacity-20"
-        style={{
-          backgroundImage:
-            "url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" fill-rule=\"evenodd\"%3E%3Cg fill=\"%23ffffff\" fill-opacity=\"0.05\"%3E%3Cpath d=\"M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')",
-        }}
+    <section className="relative min-h-[65vh] md:min-h-screen overflow-hidden">
+      <img
+        src="/IMG_20260103_160311.jpg"
+        alt="Gqeberha hero"
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ objectPosition: "center 30%" }}
+        loading="lazy"
+        decoding="async"
       />
+      <div className="absolute inset-0 bg-linear-to-b from-black/35 via-black/20 to-black/50" />
 
-      {/* Content */}
-      <div className="relative h-full flex flex-col items-center justify-center px-4 text-center">
-        <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 max-w-3xl">{title}</h2>
-        <p className="text-lg text-blue-50 mb-8 max-w-2xl">{subtitle}</p>
+      <div className="relative min-h-[65vh] md:min-h-screen flex flex-col items-center justify-center px-4 text-center z-10">
+        <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 max-w-3xl drop-shadow-lg">{title}</h2>
+        <p className="text-lg text-white mb-8 max-w-2xl drop-shadow-md">{subtitle}</p>
 
         {showSearch && <SearchBar />}
       </div>

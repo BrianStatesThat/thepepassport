@@ -232,3 +232,63 @@ export function createOrganizationJsonLd() {
     sameAs: [],
   });
 }
+
+export function createLocalBusinessJsonLd(listing: {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  address?: string;
+  phone?: string;
+  website?: string;
+  featured_image?: string;
+  rating?: number;
+  review_count?: number;
+  categories?: string[];
+}) {
+  const businessType = listing.categories?.[0] === "Eat" 
+    ? "Restaurant"
+    : listing.categories?.[0] === "Stay"
+    ? "Hotel"
+    : "LocalBusiness";
+
+  return toJsonLd({
+    "@context": "https://schema.org",
+    "@type": businessType,
+    name: listing.title,
+    description: listing.description,
+    url: absoluteUrl(`/listings/${listing.slug}`),
+    image: listing.featured_image || undefined,
+    address: listing.address || {
+      "@type": "PostalAddress",
+      addressRegion: "Eastern Cape",
+      addressCountry: "ZA",
+    },
+    telephone: listing.phone || undefined,
+    ...(listing.website ? { sameAs: listing.website } : {}),
+    ...(listing.rating
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: listing.rating,
+            reviewCount: listing.review_count || 0,
+          },
+        }
+      : {}),
+  });
+}
+
+export function createFAQJsonLd(faqs: Array<{ question: string; answer: string }>) {
+  return toJsonLd({
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((faq) => ({
+      "@type": "Question",
+      name: faq.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: faq.answer,
+      },
+    })),
+  });
+}

@@ -10,7 +10,7 @@ import { absoluteUrl, buildPageMetadata, canonicalUrl, toJsonLd } from "@/lib/se
 
 export const dynamic = "force-dynamic";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 9;
 
 type ListingsSearchParams = {
   page?: string | string[];

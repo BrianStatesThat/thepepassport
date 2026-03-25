@@ -61,8 +61,8 @@ export function BlogSection({
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {displayPosts.map((post) => {
-          const displayDate = post.date
-            ?? (post.published_at ? new Date(post.published_at).toLocaleDateString() : "");
+          const displayDate = post.published_at ? new Date(post.published_at).toLocaleDateString()
+            : (post.date ? new Date(post.date).toLocaleDateString() : "");
           const displayReadTime = post.readTime
             ?? (typeof post.reading_time === "number" ? `${post.reading_time} min read` : "");
           const cardClasses = "bg-white dark:bg-slate-900 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition cursor-pointer border border-gray-200 dark:border-slate-800 flex flex-col h-full hover:scale-105 duration-300";

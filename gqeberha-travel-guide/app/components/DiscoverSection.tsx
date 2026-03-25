@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { MapPin } from "lucide-react";
 
 interface FeaturedListing {
@@ -98,15 +99,20 @@ export function DiscoverSection({
             const cardBody = (
               <>
                 {/* Image Container */}
-                <div className="relative h-48 bg-linear-to-br from-blue-200 to-blue-300 overflow-hidden">
-                  <div
-                    className="w-full h-full bg-cover bg-center ease-in-out"
-                    style={{
-                      backgroundColor: "#cbd5e1",
-                      backgroundImage: image ? `url(${image})` : undefined,
-                      backgroundPosition: "center 40%",
-                    }}
-                  />
+                <div className="relative h-48 bg-gray-100 dark:bg-slate-800 overflow-hidden">
+                  {image ? (
+                    <Image
+                      src={image}
+                      alt={`${displayTitle} - ${category} in Gqeberha`}
+                      fill
+                      className="object-cover object-center group-hover:scale-105 transition-transform duration-300"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-linear-to-br from-blue-200 to-blue-300 flex items-center justify-center">
+                      <MapPin className="w-12 h-12 text-blue-400" />
+                    </div>
+                  )}
                   {showFeatured && (
                     <div className="absolute top-3 right-3 bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
                       {listing.localTip ? "Local Tip" : "Featured"}

@@ -1,4 +1,5 @@
 import { Calendar, Clock } from "lucide-react";
+import Image from "next/image";
 import type { BlogPost } from "@/lib/types";
 
 interface BlogCardProps {
@@ -13,12 +14,19 @@ export function BlogCard({ post, onClick }: BlogCardProps) {
       className="bg-white dark:bg-slate-900 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition cursor-pointer border border-gray-200 dark:border-slate-800 flex flex-col h-full"
     >
       {/* Image */}
-      <div
-        className="h-40 bg-linear-to-br from-orange-300 to-orange-400 bg-cover bg-center"
-        style={{
-          backgroundImage: `url(${post.featured_image})`,
-        }}
-      />
+      <div className="relative h-40 bg-linear-to-br from-orange-300 to-orange-400 overflow-hidden">
+        {post.featured_image ? (
+          <Image
+            src={post.featured_image}
+            alt={`${post.title} - Gqeberha travel guide`}
+            fill
+            className="object-cover object-center"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          />
+        ) : (
+          <div className="w-full h-full bg-linear-to-br from-orange-300 to-orange-400" />
+        )}
+      </div>
 
       {/* Content */}
       <div className="p-6 flex flex-col flex-1">

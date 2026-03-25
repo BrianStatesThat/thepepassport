@@ -1,6 +1,6 @@
 "use client";
 
-import { Compass, Utensils, Home as HomeIcon, Camera } from "lucide-react";
+import { Compass, Utensils, Camera, Music2Icon as Music } from "lucide-react";
 import { CategoryCard } from "./CategoryCard";
 
 interface Category {
@@ -24,7 +24,7 @@ export function CategoryNavigation({
   const defaultCategories: Category[] = [
     { name: "Explore", icon: <Compass className="w-6 h-6" />, color: "bg-blue-500" },
     { name: "Eat", icon: <Utensils className="w-6 h-6" />, color: "bg-orange-500" },
-    { name: "Stay", icon: <HomeIcon className="w-6 h-6" />, color: "bg-teal-500" },
+    { name: "Nightlife", icon: <Music className="w-6 h-6" />, color: "bg-teal-500" },
     { name: "Adventures", icon: <Camera className="w-6 h-6" />, color: "bg-emerald-500" },
   ];
 

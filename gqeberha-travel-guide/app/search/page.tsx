@@ -1,5 +1,6 @@
 "use client";
 
+import type { Metadata } from "next";
 import { useState, useEffect, Suspense } from "react";
 import { Header } from "@/app/components/Header";
 import { DiscoverSection } from "@/app/components/DiscoverSection";
@@ -8,6 +9,7 @@ import { searchListingsAction } from "@/app/actions/search";
 import type { Listing } from "@/lib/types";
 import { useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
+import { buildPageMetadata, absoluteUrl } from "@/lib/seo";
 
 function SearchPageContent() {
   const searchParams = useSearchParams();
