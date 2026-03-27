@@ -45,6 +45,9 @@ export function Header() {
             <Link href="/explore" className="text-dark-gray dark:text-slate-200 hover:text-blue-600 font-medium transition">
               Explore
             </Link>
+            <Link href="/add-listing" className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 font-medium transition">
+              Add Listing
+            </Link>
 
             {/* Desktop Search Bar */}
             <form onSubmit={handleSearchSubmit} className="ml-4">
@@ -146,6 +149,13 @@ export function Header() {
                     className="text-dark-gray dark:text-slate-200 hover:text-blue-600 font-medium transition py-2"
                   >
                     Explore
+                  </Link>
+                  <Link 
+                    href="/add-listing" 
+                    onClick={() => setMenuActive(false)}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 font-medium transition text-center"
+                  >
+                    Add Listing
                   </Link>
                 </nav>
               </div>

@@ -120,7 +120,7 @@ export default async function ExplorePage() {
       <JsonLd id="explore-page-jsonld" data={exploreJsonLd} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <section className="relative overflow-hidden rounded-2xl border border-blue-200/70 dark:border-blue-800/40 bg-gradient-to-r from-sky-50 via-blue-50 to-cyan-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 p-6 sm:p-8">
+        <section className="relative overflow-hidden rounded-2xl border border-blue-200/70 dark:border-blue-800/40 bg-linear-to-r from-sky-50 via-blue-50 to-cyan-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 p-6 sm:p-8">
           <div className="absolute -top-16 -right-16 h-56 w-56 rounded-full bg-blue-300/30 blur-3xl" />
           <div className="absolute -bottom-20 -left-20 h-56 w-56 rounded-full bg-cyan-300/30 blur-3xl" />
           <div className="relative">

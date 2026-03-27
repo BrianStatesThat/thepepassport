@@ -1,5 +1,5 @@
 import { getServerSupabase } from "@/utils/supabase/server";
-import type { Listing } from "@/lib/types";
+import type { Listing, AddListingInput, ListingSubmission } from "@/lib/types";
 
 function formatSupabaseError(error: unknown) {
   if (!error) return null;
@@ -38,6 +38,7 @@ const LISTING_SELECT = `
 `;
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+const SUPABASE_STORAGE_URL = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_URL ?? "https://ggecxmqfwvrizuvbvbfg.storage.supabase.co";
 const LISTINGS_BUCKET = process.env.NEXT_PUBLIC_SUPABASE_LISTINGS_BUCKET ?? "listings";
 type ServerSupabaseClient = Awaited<ReturnType<typeof getServerSupabase>>;
 
@@ -94,13 +95,13 @@ function toNumber(value: unknown, fallback = 0): number {
 
 function buildPublicStorageUrl(storagePath: string | null): string | null {
   if (!storagePath) return null;
-  if (!SUPABASE_URL) return null;
+  if (!SUPABASE_STORAGE_URL) return null;
   const cleanedPath = storagePath.replace(/^\/+/, "");
   const encodedPath = cleanedPath
     .split("/")
     .map((segment) => encodeURIComponent(segment))
     .join("/");
-  return `${SUPABASE_URL}/storage/v1/object/public/${LISTINGS_BUCKET}/${encodedPath}`;
+  return `${SUPABASE_STORAGE_URL}/storage/v1/object/public/${LISTINGS_BUCKET}/${encodedPath}`;
 }
 
 function toNonEmptyStringArray(values: unknown): string[] {
@@ -361,27 +362,16 @@ export const listingsAPI = {
     const { data, error } = await supabase
       .from("listings")
       .select(LISTING_SELECT)
-      .eq("featured", true)
-      .limit(limit)
-      .order("created_at", { ascending: false });
-
-    if (!error) return mapListingRows(supabase, data);
-
-    // Backward-compatible fallback for schemas that still use `is_featured`.
-    const { data: legacyData, error: legacyError } = await supabase
-      .from("listings")
-      .select(LISTING_SELECT)
       .eq("is_featured", true)
       .limit(limit)
       .order("created_at", { ascending: false });
 
-    if (!legacyError) return mapListingRows(supabase, legacyData);
+    if (error) {
+      console.error("Error fetching featured listings:", formatSupabaseError(error));
+      return [];
+    }
 
-    console.error("Error fetching featured listings:", {
-      featuredError: formatSupabaseError(error),
-      isFeaturedError: formatSupabaseError(legacyError),
-    });
-    return [];
+    return mapListingRows(supabase, data);
   },
 
   // Get single listing by slug
@@ -459,6 +449,317 @@ export const listingsAPI = {
     }
     return mapListingRows(supabase, fallbackData);
   },
+};
+
+// Image upload utilities
+export const imageAPI = {
+  // Upload image to Supabase storage
+  async uploadImage(file: File, listingId?: string): Promise<{ storage_path: string; public_url: string } | null> {
+    try {
+      const supabase = await getServerSupabase();
+
+      // Generate unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const storagePath = listingId ? `listings/${listingId}/${fileName}` : `temp/${fileName}`;
+
+      // Upload file to storage
+      const { data, error } = await supabase.storage
+        .from(LISTINGS_BUCKET)
+        .upload(storagePath, file, {
+          contentType: file.type,
+          upsert: false
+        });
+
+      if (error) {
+        console.error("Error uploading image:", formatSupabaseError(error));
+        return null;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from(LISTINGS_BUCKET)
+        .getPublicUrl(storagePath);
+
+      return {
+        storage_path: storagePath,
+        public_url: urlData.publicUrl
+      };
+    } catch (error) {
+      console.error("Error in uploadImage:", error);
+      return null;
+    }
+  },
+
+  // Delete image from storage
+  async deleteImage(storagePath: string): Promise<boolean> {
+    try {
+      const supabase = await getServerSupabase();
+      const { error } = await supabase.storage
+        .from(LISTINGS_BUCKET)
+        .remove([storagePath]);
+
+      if (error) {
+        console.error("Error deleting image:", formatSupabaseError(error));
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error("Error in deleteImage:", error);
+      return false;
+    }
+  }
+};
+
+// Add listing API with verification
+export const addListingAPI = {
+  // Submit a listing for review (creates a submission record)
+  async submitListing(input: AddListingInput): Promise<{ success: boolean; submission_id?: string; error?: string }> {
+    try {
+      const supabase = await getServerSupabase();
+
+      // Upload images first if provided
+      let uploadedImages: { storage_path: string; public_url: string }[] = [];
+      if (input.images && input.images.length > 0) {
+        for (const image of input.images) {
+          const uploadResult = await imageAPI.uploadImage(image);
+          if (uploadResult) {
+            uploadedImages.push(uploadResult);
+          }
+        }
+      }
+
+      // Create submission record
+      const submissionData = {
+        listing_data: {
+          ...input,
+          images: uploadedImages.map(img => img.public_url) // Store URLs in submission
+        },
+        status: "pending",
+        submitted_by: {
+          name: input.submitter_name,
+          email: input.submitter_email,
+          phone: input.submitter_phone
+        }
+      };
+
+      const { data, error } = await supabase
+        .from("listing_submissions")
+        .insert([submissionData])
+        .select("id")
+        .single();
+
+      if (error) {
+        console.error("Error submitting listing:", formatSupabaseError(error));
+        // Clean up uploaded images if submission failed
+        await Promise.all(uploadedImages.map(img => imageAPI.deleteImage(img.storage_path)));
+        return { success: false, error: "Failed to submit listing for review" };
+      }
+
+      return { success: true, submission_id: data.id };
+    } catch (error) {
+      console.error("Error in submitListing:", error);
+      return { success: false, error: "An unexpected error occurred" };
+    }
+  },
+
+  // Admin: Get pending submissions
+  async getPendingSubmissions(): Promise<ListingSubmission[]> {
+    const supabase = await getServerSupabase();
+    const { data, error } = await supabase
+      .from("listing_submissions")
+      .select("*")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching pending submissions:", formatSupabaseError(error));
+      return [];
+    }
+
+    return (data || []).map(row => ({
+      id: row.id,
+      listing_data: row.listing_data,
+      status: row.status,
+      submitted_by: row.submitted_by,
+      reviewed_by: row.reviewed_by,
+      reviewed_at: row.reviewed_at,
+      rejection_reason: row.rejection_reason,
+      created_at: row.created_at,
+      updated_at: row.updated_at
+    }));
+  },
+
+  // Admin: Approve a submission (creates the actual listing)
+  async approveSubmission(submissionId: string, adminId?: string): Promise<{ success: boolean; listing_id?: string; error?: string }> {
+    try {
+      const supabase = await getServerSupabase();
+
+      // Get the submission
+      const { data: submission, error: fetchError } = await supabase
+        .from("listing_submissions")
+        .select("*")
+        .eq("id", submissionId)
+        .single();
+
+      if (fetchError || !submission) {
+        console.error("Error fetching submission:", formatSupabaseError(fetchError));
+        return { success: false, error: "Submission not found" };
+      }
+
+      const listingData = submission.listing_data;
+
+      // Generate slug from title
+      const slug = listingData.title
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .trim();
+
+      // Create the listing
+      const newListing = {
+        title: listingData.title,
+        slug,
+        description: listingData.description,
+        long_description: listingData.long_description,
+        categories: listingData.categories,
+        location: listingData.location,
+        contact: listingData.contact,
+        price_range: listingData.price_range,
+        opening_hours: listingData.opening_hours,
+        features: listingData.features,
+        status: "published",
+        verified: true,
+        featured: false // Will be set to true after additional verification if needed
+      };
+
+      const { data: listing, error: createError } = await supabase
+        .from("listings")
+        .insert([newListing])
+        .select("id")
+        .single();
+
+      if (createError) {
+        console.error("Error creating listing:", formatSupabaseError(createError));
+        return { success: false, error: "Failed to create listing" };
+      }
+
+      // Move images from temp to permanent location and create listing_images records
+      if (listingData.images && listingData.images.length > 0) {
+        const imageRecords = [];
+
+        for (let i = 0; i < listingData.images.length; i++) {
+          const imageUrl = listingData.images[i];
+          // Extract storage path from URL
+          const urlParts = imageUrl.split('/storage/v1/object/public/travelimages/');
+          if (urlParts.length === 2) {
+            const storagePath = urlParts[1];
+            const newStoragePath = `listings/${listing.id}/${Date.now()}-${i}.jpg`;
+
+            // Move file in storage (copy then delete old)
+            const { data: copyData, error: copyError } = await supabase.storage
+              .from(LISTINGS_BUCKET)
+              .copy(storagePath, newStoragePath);
+
+            if (!copyError) {
+              // Delete old file
+              await supabase.storage.from(LISTINGS_BUCKET).remove([storagePath]);
+
+              // Create listing_images record
+              imageRecords.push({
+                listing_id: listing.id,
+                storage_path: newStoragePath,
+                public_url: `${SUPABASE_URL}/storage/v1/object/public/${LISTINGS_BUCKET}/${newStoragePath}`,
+                is_primary: i === 0, // First image is primary
+                mime_type: 'image/jpeg',
+                caption: null
+              });
+            }
+          }
+        }
+
+        if (imageRecords.length > 0) {
+          const { error: imagesError } = await supabase
+            .from("listing_images")
+            .insert(imageRecords);
+
+          if (imagesError) {
+            console.error("Error creating listing images:", formatSupabaseError(imagesError));
+          }
+        }
+      }
+
+      // Update submission status
+      const { error: updateError } = await supabase
+        .from("listing_submissions")
+        .update({
+          status: "approved",
+          reviewed_by: adminId,
+          reviewed_at: new Date().toISOString()
+        })
+        .eq("id", submissionId);
+
+      if (updateError) {
+        console.error("Error updating submission status:", formatSupabaseError(updateError));
+      }
+
+      return { success: true, listing_id: listing.id };
+    } catch (error) {
+      console.error("Error in approveSubmission:", error);
+      return { success: false, error: "An unexpected error occurred" };
+    }
+  },
+
+  // Admin: Reject a submission
+  async rejectSubmission(submissionId: string, reason: string, adminId?: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const supabase = await getServerSupabase();
+
+      // Get the submission to clean up images
+      const { data: submission, error: fetchError } = await supabase
+        .from("listing_submissions")
+        .select("*")
+        .eq("id", submissionId)
+        .single();
+
+      if (fetchError || !submission) {
+        console.error("Error fetching submission:", formatSupabaseError(fetchError));
+        return { success: false, error: "Submission not found" };
+      }
+
+      // Clean up uploaded images
+      if (submission.listing_data.images) {
+        for (const imageUrl of submission.listing_data.images) {
+          const urlParts = imageUrl.split('/storage/v1/object/public/travelimages/');
+          if (urlParts.length === 2) {
+            await imageAPI.deleteImage(urlParts[1]);
+          }
+        }
+      }
+
+      // Update submission status
+      const { error: updateError } = await supabase
+        .from("listing_submissions")
+        .update({
+          status: "rejected",
+          reviewed_by: adminId,
+          reviewed_at: new Date().toISOString(),
+          rejection_reason: reason
+        })
+        .eq("id", submissionId);
+
+      if (updateError) {
+        console.error("Error rejecting submission:", formatSupabaseError(updateError));
+        return { success: false, error: "Failed to reject submission" };
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error("Error in rejectSubmission:", error);
+      return { success: false, error: "An unexpected error occurred" };
+    }
+  }
 };
 
 // Blog API

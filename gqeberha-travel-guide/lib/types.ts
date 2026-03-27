@@ -35,6 +35,49 @@ export interface Listing {
   updated_at: string;
 }
 
+// Add Listing Input type
+export interface AddListingInput {
+  title: string;
+  description: string;
+  long_description?: string;
+  categories: string[];
+  location: {
+    address: string;
+    lat: number;
+    lng: number;
+    area?: string;
+  };
+  contact?: {
+    phone?: string;
+    email?: string;
+    website?: string;
+  };
+  price_range?: "$" | "$$" | "$$$" | "$$$$";
+  opening_hours?: string;
+  features?: string[];
+  images?: File[];
+  submitter_name: string;
+  submitter_email: string;
+  submitter_phone?: string;
+}
+
+// Listing Submission type (for admin verification)
+export interface ListingSubmission {
+  id: string;
+  listing_data: AddListingInput;
+  status: "pending" | "approved" | "rejected";
+  submitted_by: {
+    name: string;
+    email: string;
+    phone?: string;
+  };
+  reviewed_by?: string;
+  reviewed_at?: string;
+  rejection_reason?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // Blog Post type
 export interface BlogPost {
   id: string;
